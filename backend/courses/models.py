@@ -1,5 +1,100 @@
 from django.conf import settings
 from django.db import models
+import re
+
+
+def canonical_session_label(academic_year, semester):
+    """Normalize 2026-27 + ODD, or 2026 Odd, to '2026 Odd'."""
+    odd = str(semester or '').upper() != 'EVEN'
+    season = 'Even' if not odd else 'Odd'
+    text = (academic_year or '').strip()
+    if not text:
+        return season
+    if re.match(r'^\d{4}\s+(Odd|Even)$', text, re.I):
+        year = text[:4]
+        return f'{year} {season}'
+    match = re.match(r'^(\d{4})', text)
+    if match:
+        return f'{match.group(1)} {season}'
+    return f'{text} {season}'
+
+
+class AcademicSession(models.Model):
+    """Canonical session key for the whole system, e.g. 2026 Odd / 2026 Even."""
+    class SemesterType(models.TextChoices):
+        ODD = 'ODD', 'Odd'
+        EVEN = 'EVEN', 'Even'
+
+    calendar_year = models.PositiveSmallIntegerField()
+    semester_type = models.CharField(max_length=6, choices=SemesterType.choices)
+
+    class Meta:
+        ordering = ['-calendar_year', 'semester_type']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['calendar_year', 'semester_type'],
+                name='unique_academic_session',
+            ),
+        ]
+
+    def __str__(self):
+        return self.label
+
+    @property
+    def label(self):
+        return f'{self.calendar_year} {self.get_semester_type_display()}'
+
+
+class FacultyProfile(models.Model):
+    """Directory of faculty names used on documents (both campuses)."""
+    class Campus(models.TextChoices):
+        SECTOR_62 = 'SECTOR_62', 'Sector-62'
+        SECTOR_128 = 'SECTOR_128', 'Sector-128'
+        UNKNOWN = 'UNKNOWN', 'Not set'
+
+    full_name = models.CharField(max_length=255)
+    campus = models.CharField(max_length=16, choices=Campus.choices, default=Campus.UNKNOWN)
+    email = models.EmailField(blank=True)
+    department = models.CharField(max_length=120, blank=True)
+    employee_id = models.CharField(max_length=40, blank=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='faculty_profile',
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['full_name']
+        constraints = [
+            models.UniqueConstraint(fields=['full_name', 'campus'], name='unique_faculty_name_campus'),
+        ]
+
+    def __str__(self):
+        return f'{self.full_name} ({self.get_campus_display()})'
+
+
+class NbaSubjectCatalog(models.Model):
+    """Admin master: NBA code + subject for one academic session."""
+    session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name='subjects')
+    program_name = models.CharField(max_length=120)
+    course_code = models.CharField(max_length=40)
+    course_name = models.CharField(max_length=255)
+    year_of_study = models.PositiveSmallIntegerField()
+    semester_number = models.PositiveSmallIntegerField()
+    nba_code = models.CharField(max_length=20)
+    credits = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['session', 'program_name', 'nba_code', 'course_code']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['session', 'nba_code', 'course_code'],
+                name='unique_nba_course_per_session',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.nba_code} · {self.course_code} ({self.session})'
 
 
 class Course(models.Model):
@@ -8,17 +103,33 @@ class Course(models.Model):
         ODD = 'ODD', 'Odd'
         EVEN = 'EVEN', 'Even'
 
+    academic_session = models.ForeignKey(
+        AcademicSession, on_delete=models.SET_NULL, null=True, blank=True, related_name='offerings',
+    )
+    catalog_entry = models.ForeignKey(
+        NbaSubjectCatalog, on_delete=models.SET_NULL, null=True, blank=True, related_name='offerings',
+    )
     course_code = models.CharField(max_length=30)
     course_name = models.CharField(max_length=255)
     program_name = models.CharField(max_length=120, blank=True, help_text='e.g. M.Tech CSE, B.Tech CSE')
     department = models.CharField(max_length=255, blank=True, help_text='e.g. Department of CSE & IT')
     nba_code = models.CharField(max_length=20, blank=True)
+    year_of_study = models.PositiveSmallIntegerField(null=True, blank=True)
+    semester_number = models.PositiveSmallIntegerField(null=True, blank=True)
     semester = models.CharField(max_length=6, choices=Semester.choices)
-    academic_year = models.CharField(max_length=20, help_text='Session, e.g. 2024-25 or 2024-2025')
+    academic_year = models.CharField(max_length=20, help_text='Session label, e.g. 2026 Odd')
     credits = models.PositiveSmallIntegerField(default=3)
     faculty = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='courses', limit_choices_to={'role': 'FACULTY'},
+    )
+    teaching_faculty = models.ForeignKey(
+        FacultyProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='taught_offerings',
+    )
+    course_coordinator = models.ForeignKey(
+        FacultyProfile, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='coordinated_offerings',
     )
 
     doc_title = models.CharField(max_length=255, default='Detailed Syllabus')
@@ -48,7 +159,27 @@ class Course(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.course_code} — {self.course_name} ({self.academic_year})'
+        return f'{self.course_code} — {self.course_name} ({self.session_label})'
+
+    @property
+    def session_label(self):
+        if self.academic_session_id:
+            return self.academic_session.label
+        return canonical_session_label(self.academic_year, self.semester)
+
+    @property
+    def teaching_faculty_display(self):
+        if self.teaching_faculty_id:
+            return self.teaching_faculty.full_name
+        if self.faculty_id:
+            return self.faculty.get_full_name() or self.faculty.username
+        return ''
+
+    @property
+    def coordinator_display(self):
+        if self.course_coordinator_id:
+            return self.course_coordinator.full_name
+        return self.coordinator_names or self.teaching_faculty_display
 
     @property
     def eval_total(self):

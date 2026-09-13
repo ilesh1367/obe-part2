@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import CourseSubnav from '../components/CourseSubnav';
+import { coordinatorName, teachingFacultyName } from '../utils/offering';
 
 const LEVELS = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
 const LEVEL_LABELS = {
@@ -220,8 +221,8 @@ export default function CourseDescription() {
         <Link to="/courses" className="text-sm text-slate-500 hover:text-slate-700">← Back to Courses</Link>
         <h1 className="text-2xl font-bold text-slate-900 mt-2 mb-1">{course.course_code} — {course.course_name}</h1>
         <p className="text-sm text-slate-500 mb-4">
-          Session {course.academic_year} · {semesterLabel}
-          {course.faculty_name ? ` · ${course.faculty_name}` : ''}
+          Session {course.session_label || course.academic_year}
+          {` · Faculty: ${teachingFacultyName(course)} · Coordinator: ${coordinatorName(course)}`}
         </p>
         <CourseSubnav courseId={id} />
 
@@ -261,9 +262,10 @@ export default function CourseDescription() {
                   <option value="EVEN">Even</option>
                 </select>
               </label>
-              <Field label="Session" value={form.academic_year} onChange={(v) => setField('academic_year', v)} />
+              <Field label="Session" value={course.session_label || form.academic_year} onChange={(v) => setField('academic_year', v)} />
               <Field label="NBA code (CO prefix)" value={form.nba_code} onChange={(v) => setField('nba_code', v)} />
-              <Field label="Coordinator(s)" value={form.coordinator_names} onChange={(v) => setField('coordinator_names', v)} />
+              <Field label="Faculty name" value={teachingFacultyName(course)} onChange={() => {}} />
+              <Field label="Course coordinator" value={form.coordinator_names} onChange={(v) => setField('coordinator_names', v)} />
             </div>
           </div>
 
@@ -427,7 +429,7 @@ export default function CourseDescription() {
               </tr>
               <tr>
                 <td className="border border-slate-800 px-2 py-1 font-semibold">Session</td>
-                <td className="border border-slate-800 px-2 py-1" colSpan="3">{form.academic_year || course.academic_year}</td>
+                <td className="border border-slate-800 px-2 py-1" colSpan="3">{course.session_label || form.academic_year || course.academic_year}</td>
               </tr>
             </tbody>
           </table>
@@ -436,8 +438,12 @@ export default function CourseDescription() {
           <table className="w-full border-collapse mb-4">
             <tbody>
               <tr>
-                <td className="border border-slate-800 px-2 py-1 font-semibold w-[18%]">Coordinator(s)</td>
-                <td className="border border-slate-800 px-2 py-1">{form.coordinator_names || '—'}</td>
+                <td className="border border-slate-800 px-2 py-1 font-semibold w-[18%]">Faculty</td>
+                <td className="border border-slate-800 px-2 py-1">{teachingFacultyName(course)}</td>
+              </tr>
+              <tr>
+                <td className="border border-slate-800 px-2 py-1 font-semibold w-[18%]">Course Coordinator</td>
+                <td className="border border-slate-800 px-2 py-1">{form.coordinator_names || coordinatorName(course)}</td>
               </tr>
             </tbody>
           </table>

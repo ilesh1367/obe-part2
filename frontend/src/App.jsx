@@ -13,6 +13,7 @@ import CourseAssessments from './pages/CourseAssessments';
 import CourseAssessmentTools from './pages/CourseAssessmentTools';
 import CourseClosingReport from './pages/CourseClosingReport';
 import Users from './pages/Users';
+import CatalogAdmin from './pages/CatalogAdmin';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
+        <Route path="/catalog" element={<ProtectedRoute adminOnly><CatalogAdmin /></ProtectedRoute>} />
         <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
         <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
         <Route path="/courses/:id/description" element={<ProtectedRoute><CourseDescription /></ProtectedRoute>} />

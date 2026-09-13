@@ -91,6 +91,7 @@ obe-part2/
 | Auth / users | `/auth/` |
 | Dashboard | `/dashboard/` |
 | Courses, COs, mappings | `/courses/` |
+| Sessions / NBA catalog / faculty directory | `/courses/sessions/`, `/courses/catalog/`, `/courses/faculty-directory/` |
 | Opening report | `/opening-reports/<course_id>/` |
 | Assessment tools | `/assessment-tools/<course_id>/` |
 | Assessments, students, marks | `/assessments/` |
@@ -128,8 +129,9 @@ Sign in at `http://localhost:5173`. Faculty accounts are created by an Admin on 
 
 ## Typical course workflow
 
-1. Create a course for this **session** (code + academic year + faculty).  
-2. **Course Description** — fill COs, mapping, syllabus; Save; Print if needed.  
+1. **Admin → Catalog** — add session (e.g. 2026 Odd), NBA subjects, faculty (Sector-62 / 128). Seed Excel with `python manage.py seed_catalog`.  
+2. **Courses** — pick session, NBA subject (program/code/name auto-fill), faculty name, course coordinator; Save.  
+3. **Course Description** — fill COs, mapping, syllabus; Save; Print if needed.  
 3. **Opening Report** — confirm synced CD data; set targets; Save; Print.  
 4. **Assessment Tools** — add T-1 / T-2 / T-3 (or mid/end sem) and questions; Save; Print.  
 5. **Students & Marks** — enter assessments.  

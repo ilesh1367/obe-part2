@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import CourseSubnav from '../components/CourseSubnav';
 import A4Document from '../components/A4Document';
+import { coordinatorName, teachingFacultyName } from '../utils/offering';
 
 const LEVEL_LABELS = {
   REMEMBER: 'Remember Level (Level 1)',
@@ -202,7 +203,8 @@ export default function CourseOpeningReport() {
   if (!course || !report) return <div className="p-8">Loading…</div>;
 
   const dept = course.department || '—';
-  const coordinator = course.coordinator_names || course.faculty_name || '—';
+  const coordinator = coordinatorName(course);
+  const facultyPerson = teachingFacultyName(course);
   const courseLine = `${course.course_name} (${course.course_code})`;
   const ay = course.academic_year;
   const historyYears = Object.keys(historyByYear).sort().reverse();
@@ -216,8 +218,8 @@ export default function CourseOpeningReport() {
         <Link to="/courses" className="text-sm text-slate-500 hover:text-slate-700">← Back to Courses</Link>
         <h1 className="text-2xl font-bold text-slate-900 mt-2 mb-1">{course.course_code} — {course.course_name}</h1>
         <p className="text-sm text-slate-500 mb-4">
-          Session {course.academic_year} · {semesterWord}
-          {course.faculty_name ? ` · ${course.faculty_name}` : ''}
+          Session {course.session_label || course.academic_year}
+          {` · Faculty: ${facultyPerson} · Coordinator: ${coordinator}`}
         </p>
         <CourseSubnav courseId={id} />
 
@@ -244,6 +246,7 @@ export default function CourseOpeningReport() {
               <p><span className="text-slate-500">Programme:</span> {course.program_name || '—'}</p>
               <p className="col-span-2"><span className="text-slate-500">Course:</span> {courseLine}</p>
               <p><span className="text-slate-500">NBA code:</span> {course.nba_code || '—'}</p>
+              <p><span className="text-slate-500">Faculty:</span> {facultyPerson}</p>
               <p><span className="text-slate-500">Coordinator:</span> {coordinator}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
@@ -541,8 +544,8 @@ export default function CourseOpeningReport() {
               <tr>
                 <td className={`${td} font-semibold`}>NBA Code</td>
                 <td className={td}>{course.nba_code || '—'}</td>
-                <td className={`${td} font-semibold`}>Coordinator</td>
-                <td className={td}>{coordinator}</td>
+                <td className={`${td} font-semibold`}>Session</td>
+                <td className={td}>{course.session_label || ay}</td>
               </tr>
             </tbody>
           </table>
@@ -551,7 +554,11 @@ export default function CourseOpeningReport() {
           <table className="w-full border-collapse mb-4">
             <tbody>
               <tr>
-                <td className={`${td} font-semibold w-[22%]`}>Coordinator(s)</td>
+                <td className={`${td} font-semibold w-[22%]`}>Faculty</td>
+                <td className={td}>{facultyPerson}</td>
+              </tr>
+              <tr>
+                <td className={`${td} font-semibold w-[22%]`}>Course Coordinator</td>
                 <td className={td}>{coordinator}</td>
               </tr>
             </tbody>

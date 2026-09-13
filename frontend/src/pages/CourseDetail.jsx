@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../api/client';
 import CourseSubnav from '../components/CourseSubnav';
 import { useAuth } from '../context/AuthContext';
+import { coordinatorName, teachingFacultyName } from '../utils/offering';
 
 export default function CourseDetail() {
   const { id } = useParams();
@@ -57,7 +58,8 @@ export default function CourseDetail() {
       </div>
       <p className="text-sm text-slate-500 mb-4">
         {course.program_name ? `${course.program_name} · ` : ''}
-        {course.semester} · {course.academic_year}
+        {course.session_label || `${course.semester} · ${course.academic_year}`}
+        {` · Faculty: ${teachingFacultyName(course)} · Coordinator: ${coordinatorName(course)}`}
       </p>
       <CourseSubnav courseId={id} />
 

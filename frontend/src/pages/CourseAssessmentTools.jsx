@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/client';
 import CourseSubnav from '../components/CourseSubnav';
+import { coordinatorName, teachingFacultyName } from '../utils/offering';
 
 const CO_LEVEL_LABELS = {
   REMEMBER: 'Remember Level (C1)',
@@ -151,7 +152,8 @@ export default function CourseAssessmentTools() {
 
   if (!course || !doc) return <div className="p-8">Loading…</div>;
 
-  const coordinator = course.coordinator_names || course.faculty_name || '—';
+  const coordinator = coordinatorName(course);
+  const facultyPerson = teachingFacultyName(course);
   const ay = course.academic_year;
   const td = 'border border-slate-800 px-2 py-1';
   const th = 'border border-slate-800 px-2 py-1 bg-slate-50';
@@ -168,8 +170,8 @@ export default function CourseAssessmentTools() {
         <Link to="/courses" className="text-sm text-slate-500 hover:text-slate-700">← Back to Courses</Link>
         <h1 className="text-2xl font-bold text-slate-900 mt-2 mb-1">{course.course_code} — {course.course_name}</h1>
         <p className="text-sm text-slate-500 mb-4">
-          Session {course.academic_year} · {semesterWord}
-          {course.faculty_name ? ` · ${course.faculty_name}` : ''}
+          Session {course.session_label || course.academic_year}
+          {` · Faculty: ${facultyPerson} · Coordinator: ${coordinator}`}
         </p>
         <CourseSubnav courseId={id} />
 
@@ -198,6 +200,7 @@ export default function CourseAssessmentTools() {
               <p className="col-span-2"><span className="text-slate-500">Programme:</span> {course.program_name || '—'}</p>
               <p className="col-span-2"><span className="text-slate-500">Course:</span> {course.course_name} ({course.course_code})</p>
               <p><span className="text-slate-500">NBA code:</span> {course.nba_code || '—'}</p>
+              <p><span className="text-slate-500">Faculty:</span> {facultyPerson}</p>
               <p><span className="text-slate-500">Coordinator:</span> {coordinator}</p>
             </div>
             {outcomes.length > 0 && (
@@ -372,6 +375,7 @@ export default function CourseAssessmentTools() {
                   <div><b>Semester:</b> {doc.semester_label || `${semesterWord} Semester`}</div>
                   <div><b>Course Name &amp; Code:</b> {course.course_name} ({course.course_code})</div>
                   <div><b>NBA Code:</b> {course.nba_code || '—'}</div>
+                  <div><b>Faculty:</b> {facultyPerson}</div>
                   <div><b>Name of Course Coordinator:</b> {coordinator}</div>
                 </td>
               </tr>
@@ -416,8 +420,8 @@ export default function CourseAssessmentTools() {
           </table>
 
           <div className="mt-8 flex justify-between text-[11px] font-semibold">
+            <span>Faculty: {facultyPerson}</span>
             <span>Course Coordinator: {coordinator}</span>
-            <span>Module Coordinator: {doc.module_coordinator || ''}</span>
           </div>
         </div>
       </section>

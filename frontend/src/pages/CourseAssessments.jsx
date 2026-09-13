@@ -291,7 +291,7 @@ export default function CourseAssessments() {
       <Link to="/courses" className="text-sm text-slate-500 hover:text-slate-700 no-print">← Back to Courses</Link>
       <h1 className="text-2xl font-bold text-slate-900 mt-2 mb-1 no-print">{course.course_code} — {course.course_name}</h1>
       <p className="text-sm text-slate-500 mb-4 no-print">
-        {course.semester} · {course.academic_year} · one shared student list for T1, T2, T3, TA and Feedback
+        {course.session_label || course.academic_year} · one shared student list for T1, T2, T3, TA and Feedback
       </p>
       <CourseSubnav courseId={id} />
 
